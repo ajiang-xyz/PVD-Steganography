@@ -8,7 +8,7 @@ Create several variations of the PVD steganographic method and write a tool for 
 ## Background
 
 ### What is steganography?
-Steganography, in the case of images, is the practice of hiding secret data inside a normal image such that the yielded image is almost or completely visually indiscernible from the original. There are numerous types of steganography, but all methods are reversible and difficult to detect. After encoding a message into a file using a steganographic technique, one must still be able to retrieve the secret, hidden data from the output file. Moreover, one must not be able to determine which image has the encoded image.
+Steganography, in the case of images, is the practice of hiding secret data inside a normal image such that the yielded image is almost or completely visually indiscernible from the original. There are numerous types of steganography, but all methods are reversible and difficult to detect. After encoding a message into a file using a steganographic technique, one must still be able to retrieve the secret, hidden data from the output file. Moreover, one must not be able to determine which image contains the secret message.
 
 ### What is Pixel Value Differencing (PVD)?
 Abstract, modified for clarity, from Wu and Tsai's 2002 paper, "A steganographic method for imagesby pixel-value differencing":
