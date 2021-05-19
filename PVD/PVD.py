@@ -122,7 +122,7 @@ def singleChannel(loadedImage, pixelMatrix, message="", verbose=False):
 
                             # Ensure last bit doesn't get corrupted, fill empty space with 0's
                             storableBits += "0" * (storableCount - len(messageBinary[currentMessageIndex:]))
-                            endIndex = len(messageBinary)
+                            currentMessageIndex = len(messageBinary)
 
                     # Get value of the chunk of message binary
                     storableBitsValue = int(storableBits, 2)
@@ -139,7 +139,7 @@ def singleChannel(loadedImage, pixelMatrix, message="", verbose=False):
                 newPixels += pixelPair
 
         returnValue = True
-        if currentMessageIndex != len(messageBinary) - 1:
+        if currentMessageIndex != len(messageBinary):
             print(f"Warning: only {len(messageBinary[0:currentMessageIndex])} of {len(messageBinary)} bits encoded")
             print(f"\nOriginal message: {message}")
             returnValue = False
