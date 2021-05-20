@@ -1,5 +1,5 @@
 fix research readmes, set up different files for algorithms
-- add visualizations
+~~- add visualizations~~
 - add explanation of check
 
 remove pixelmatrix usage

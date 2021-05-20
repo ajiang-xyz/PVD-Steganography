@@ -10,22 +10,22 @@ import math
 import os
 
 # PVD algorithm variant on images with RGB channels (ignores Alpha channel if present) 
-def rgbChannels(loadedImage, pixelMatrix, message="", variant=""):
+def rgbChannels(loadedImage, message="", variant=""):
     if message == "":
         # Decoding function here
         pass
     else:
         # Encoding function
-        pixelPairs = pixelArrayToZigZagPairs(loadedImage, pixelMatrix, 3)
+        pixelPairs = pixelArrayToZigZagPairs(loadedImage, 3)
         print(pixelPairs)
 
 # PVD algorithm on images with 8-bit B&W channel
-def singleChannel(loadedImage, pixelMatrix, message="", verbose=False):
+def singleChannel(loadedImage, message="", verbose=False):
     quantizationWidths = [
                         [0,1], [2,3], [4,7], [8,11], [12,15], [16,23], [24,31], [32,47], 
                         [48,63], [64,95], [96,127], [128,191], [192,255]
                         ]
-    pixelPairs = pixelArrayToZigZag(loadedImage, pixelMatrix, 1, 2)
+    pixelPairs = pixelArrayToZigZag(loadedImage, 1, 2)
 
     # If function is run without message, assume retrieval of message
     if message == "":
@@ -162,8 +162,8 @@ def singleChannel(loadedImage, pixelMatrix, message="", verbose=False):
                         print(f"{printableUnderlining}")
 
         # Create new image structure, save file
-        newPixels = list(groupImagePixels(newPixels, pixelMatrix.width))
-        newPixels = pixelArrayToZigZag(newPixels, pixelMatrix, 1, pixelMatrix.width)
+        newPixels = list(groupImagePixels(newPixels, loadedImage.size[0]))
+        newPixels = pixelArrayToZigZag(newPixels, 1, loadedImage.size[0], loadedImage.size[0], loadedImage.size[1])
         array = np.array(newPixels, dtype=np.uint8)
         savedImage = Image.fromarray(array)
         savedImage.save('./IO/out.png')
@@ -205,15 +205,14 @@ def singleChannel(loadedImage, pixelMatrix, message="", verbose=False):
 @executionTime
 def main():
     loadedImage = Image.open("./IO/in.png")
-    pixelMatrix = Matrix(loadedImage.size[1], loadedImage.size[0])
 
     # 24-bit RGB image; ignores Alpha channel
     if "RGB" in loadedImage.mode.upper():
-        rgbChannels(loadedImage, pixelMatrix)
+        rgbChannels(loadedImage)
     
     # 8-bit Black & White image
     if loadedImage.mode.upper() == "L":
-        returnValue = singleChannel(loadedImage, pixelMatrix, message="hi", verbose=True)
+        returnValue = singleChannel(loadedImage, message="hi", verbose=True)
         print()
 
         # Parse function return

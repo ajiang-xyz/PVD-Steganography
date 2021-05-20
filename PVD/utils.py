@@ -35,45 +35,19 @@
 import math
 import time
 
-# Matrix object that stores structures in a nested list format
-class Matrix(object):
-    def __init__(self, height, width=None, default=0):
-        self.height = height
-        self.width = height if width == None else width
-        self.matrix = []
-        for i in range(self.height):
-            self.matrix.append([default for j in range(self.width)])
-        
-    def __getitem__(self, index):
-        return self.matrix[index]
-
-    # Copy function that returns a new, equal object of original 
-    def copy(self):
-        copyMatrix = Matrix(self.height, self.width)
-        for i in range(self.height):
-            for j in range(self.width):
-                copyMatrix[i][j] = self.matrix[i][j]
-        return copyMatrix
-
-def printMatrix(matrix):
-    for row in range(matrix.height):
-        for column in range(matrix.width):
-            print(matrix[row][column], end=" ")
-        print("")
-
 # Split array of pixel values into nested: [[1,2],[3,4],[5,6],[7,8]] --> [[[1,2],[3,4]],[[5,6],[7,8]]]
-def groupImagePixels(imagePixels, pixelMatrixWidth):
-    for i in range(0, len(imagePixels), pixelMatrixWidth): 
-        yield imagePixels[i : i + pixelMatrixWidth]
+def groupImagePixels(imagePixels, imageWidth):
+    for i in range(0, len(imagePixels), imageWidth): 
+        yield imagePixels[i : i + imageWidth]
 
 # Note: this function is only for dev atm
-def pixelArrayToMatrix(loadedImage, pixelMatrix, channels):
+def pixelArrayToMatrix(loadedImage, channels):
     # # Dev code for printing original, un-zig-zagged array of pixel values
 
     # imagePixels = list(loadedImage.getdata())
     # index = 0
-    # for i in range(pixelMatrix.height):
-    #     for j in range(pixelMatrix.width):
+    # for i in range(height):
+    #     for j in range(width):
     #         pixelMatrix[i][j] = list(imagePixels[index])[0:3]
     #         index += 1
     # printMatrix(pixelMatrix)
@@ -84,21 +58,21 @@ def pixelArrayToMatrix(loadedImage, pixelMatrix, channels):
     # Split array of pixel values into nested: [[1,2],[3,4],[5,6],[7,8]] --> [[[1,2],[3,4]],[[5,6],[7,8]]]
     # Size of chunk depends on width of image
 
-    imagePixels = list(groupImagePixels(list(loadedImage.getdata()), pixelMatrix.width))
-    for row in range(pixelMatrix.height):
+    imagePixels = list(groupImagePixels(list(loadedImage.getdata()), width))
+    for row in range(height):
         if row % 2 == 0:
             # Even row of pixels, maintain order
-            for column in range(pixelMatrix.width):
+            for column in range(width):
                 pixelMatrix[row][column] = list(imagePixels[row][column])[0:channels]
         else:
             # Odd row of pixels, reverse order
-            for column in range(pixelMatrix.width-1, -1, -1):
-                # pixelMatrix.width-column-1 represents distance from "right edge" of matrix
-                pixelMatrix[row][pixelMatrix.width-column-1] = list(imagePixels[row][column])[0:channels]
+            for column in range(width-1, -1, -1):
+                # width-column-1 represents distance from "right edge" of matrix
+                pixelMatrix[row][width-column-1] = list(imagePixels[row][column])[0:channels]
 
     return pixelMatrix
 
-def pixelArrayToZigZag(loadedImage, pixelMatrix, channels, groupings):
+def pixelArrayToZigZag(loadedImage, channels, groupings, width="", height=""):
     # Horizontally zig-zag through matrix
     # Then, split array of pixel values into nested pairs
     # ex: [[1, 2, 3, 4], [5, 6, 7, 8]] --> [ [[1,2],[3,4]], [[8,7],[6,5]] ]
@@ -106,21 +80,25 @@ def pixelArrayToZigZag(loadedImage, pixelMatrix, channels, groupings):
     # Size of chunk depends on width of image
     if isinstance(loadedImage, list): 
         imagePixels = loadedImage
+        if width == "" or height == "":
+            raise Exception("When providing an image in nested list form, width and height must be provided") 
     else:
-        imagePixels = list(groupImagePixels(list(loadedImage.getdata()), pixelMatrix.width))
+        width = loadedImage.size[0]
+        height = loadedImage.size[1]
+        imagePixels = list(groupImagePixels(list(loadedImage.getdata()), width))
     zigZaggedPixels = []
-    for row in range(pixelMatrix.height):
+    for row in range(height):
         if row % 2 == 0:
             # Even row of pixels, maintain order
-            for column in range(pixelMatrix.width):
+            for column in range(width):
                 if channels != 1:
                     zigZaggedPixels += [list(imagePixels[row][column])[0:channels]]
                 else:
                     zigZaggedPixels += [imagePixels[row][column]]
         else:
             # Odd row of pixels, reverse order
-            for column in range(pixelMatrix.width-1, -1, -1):
-                # pixelMatrix.width-column-1 represents distance from "right edge" of matrix
+            for column in range(width-1, -1, -1):
+                # width-column-1 represents distance from "right edge" of matrix
                 if channels != 1:
                     zigZaggedPixels += [list(imagePixels[row][column])[0:channels]]
                 else:
