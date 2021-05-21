@@ -41,7 +41,7 @@ def groupImagePixels(imagePixels, imageWidth):
         yield imagePixels[i : i + imageWidth]
 
 # Note: this function is only for dev atm
-def pixelArrayToMatrix(loadedImage, channels):
+def pixelArrayToMatrix(loadedImage, channels) -> list:
     # # Dev code for printing original, un-zig-zagged array of pixel values
 
     # imagePixels = list(loadedImage.getdata())
@@ -72,7 +72,7 @@ def pixelArrayToMatrix(loadedImage, channels):
 
     return pixelMatrix
 
-def pixelArrayToZigZag(loadedImage, channels, groupings, width="", height=""):
+def pixelArrayToZigZag(loadedImage, channels, groupings, width="", height="") -> list:
     # Horizontally zig-zag through matrix
     # Then, split array of pixel values into nested pairs
     # ex: [[1, 2, 3, 4], [5, 6, 7, 8]] --> [ [[1,2],[3,4]], [[8,7],[6,5]] ]
@@ -111,7 +111,7 @@ def pixelArrayToZigZag(loadedImage, channels, groupings, width="", height=""):
         pairedPixels = list(groupImagePixels(zigZaggedPixels, groupings))
         return pairedPixels
 
-def pixelPairEncode(pixelPair, differencePrime, difference):
+def pixelPairEncode(pixelPair, differencePrime, difference) -> list:
     m = differencePrime - difference
     if difference % 2 == 0:
         newPixelPair = [pixelPair[0] - math.ceil(m/2),  pixelPair[1] + math.floor(m/2)]

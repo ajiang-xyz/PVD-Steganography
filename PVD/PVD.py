@@ -12,12 +12,11 @@ import os
 # PVD algorithm variant on images with RGB channels (ignores Alpha channel if present) 
 def rgbChannels(loadedImage, message="", variant=""):
     if message == "":
-        # Decoding function here
+        # Retrieval function here
         pass
     else:
         # Encoding function
-        pixelPairs = pixelArrayToZigZagPairs(loadedImage, 3)
-        print(pixelPairs)
+        pass
 
 # PVD algorithm on images with 8-bit B&W channel
 def singleChannel(loadedImage, message="", verbose=False):

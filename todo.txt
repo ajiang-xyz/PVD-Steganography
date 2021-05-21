@@ -2,4 +2,6 @@ fix research readmes, set up different files for algorithms
 ~~- add visualizations~~
 - add explanation of check
 
-remove pixelmatrix usage
+~~remove pixelmatrix usage~~
+
+set up settings file, work on rgp variants

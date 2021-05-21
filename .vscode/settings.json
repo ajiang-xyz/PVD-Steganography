@@ -1,3 +1,4 @@
 {
-    "python.pythonPath": "/usr/bin/pypy3"
+    "python.pythonPath": "/usr/bin/pypy3",
+    "python.analysis.extraPaths": ["./PVD/"],
 }
