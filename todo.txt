@@ -4,4 +4,4 @@ fix research readmes, set up different files for algorithms
 
 ~~remove pixelmatrix usage~~
 
-set up settings file, work on rgp variants
+set up settings file, work on rgb variants

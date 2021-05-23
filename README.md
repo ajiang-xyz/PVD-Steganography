@@ -23,15 +23,18 @@ Root of PVD-Steganography
 │   ├── IO                                     IO directory for the PVD module
 │   │   ├── in.png                             Input PNG file
 │   │   └── out.png                            Output PNG file
+│   ├── deprecated items.py                    Contains deprecated chunks that I might want to reuse later
+│   ├── line counter.py                        Counts number of code lines in PVD.py
 │   ├── PVD.py                                 Driver script file
-│   ├── requirements.txt                       Useful requirements file
+│   ├── requirements.txt                       Python module requirements file
 │   └── utils.py                               Helper file for PVD.py
-├── README Resources                           Contains all files referenced in the README file in the root of the repo
-│   ├── example.png                            Fig. 1 in Research/TBD.md
-│   └── twoPixels.png                          Fig. 2 in Research/TBD.md
 ├── Research                                   Research directory. Contains explanations of algorithms, any findings I make, etc
 │   ├── My Algorithms                          Contains explanations of the variation algorithms I created.
-│   │   └── 24-bit RGB PVD.md                  Explains my 24-bit (3, 8-bit channels) RGB PVD variations on Wu and Tsai's original algorithm
+│   │   └── 24-bit RGB PVD.md                  Explains my 24-bit (3, 8-bit channels) RGB PVD variation algorithm
+│   ├── Resources                              Contains all files referenced in the README file in the root of the repo
+│   │   └── encodedPixels.png                  Fig. 3 in Research/8-bit Single PVD (Wu and Tsai).md
+│   │   └── example.png                        Fig. 1 in Research/8-bit Single PVD (Wu and Tsai).md
+│   │   └── twoPixels.png                      Fig. 2 in Research/8-bit Single PVD (Wu and Tsai).md
 │   ├── 8-bit Single PVD (Wu and Tsai).md      Explains Wu and Tsai's original 8-bit (single black/white channel) PVD algorithm
 │   └── README.md                              Description of directory
 ├── LICENSE.txt                                License
