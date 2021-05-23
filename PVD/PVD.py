@@ -10,7 +10,33 @@ import math
 import os
 
 # PVD algorithm variant on images with RGB channels (ignores Alpha channel if present) 
-def rgbChannels(loadedImage, message="", variant=""):
+def rgbChannels(loadedImage, message="", traversalOrder=[]):
+    """
+    This function takes takes an image of the form
+    [
+        [<RGB 1>, <RGB 2>, <RGB 3>, ... ],
+        [<RGB a>, <RGB a+1>, <RGB a+2>, ... ],
+        [<RGB b>, <RGB b+1>, <RGB b+2>, ... ],
+        ...
+    ]
+    where RGB <index> is of the form [R, G, B]
+    And utilizes a modified version Wu and Tsai's algorithm to encode a message into this nested array structure.
+
+    Because this image is RGB, an order of traversal is needed to ensure the correct encoding/retrieval order 
+    while traversing the structure.
+    
+    Define a general pair of RGB pixels as [[R1, G1, B1], [R2, G2, B2]] and flatten it into [R1, G1, B1, R2, G2, B2]
+    The traversal order is an array of that maps the corresponding value to a location it should be sorted to. 
+    After mapping and sorting the pixel values, pair adjacent pixels 
+
+    For example, a possible traversal order is the standard [1, 3, 5, 2, 4, 6]
+    Applying this traversal order concept to the RGB pixel pair 
+    [[185, 75, 250], [255, 80, 200]] 
+    results in these encodable groups of values:
+    [[185, 255], [75, 80], [250, 200]]
+    """
+
+
     if message == "":
         # Retrieval function here
         pass
@@ -20,6 +46,18 @@ def rgbChannels(loadedImage, message="", variant=""):
 
 # PVD algorithm on images with 8-bit B&W channel
 def singleChannel(loadedImage, message="", verbose=False):
+    """
+    This function takes takes an image of the form
+    [
+        [<1>, <2>, <3>, ... ],
+        [<a>, <a+1>, <a+2>, ... ],
+        [<b>, <b+1>, <b+2>, ... ],
+        ...
+    ]
+    And utilizes Wu and Tsai's algorithm to encode a message into this nested array structure.
+    """
+
+
     quantizationWidths = [
                         [0,1], [2,3], [4,7], [8,11], [12,15], [16,23], [24,31], [32,47], 
                         [48,63], [64,95], [96,127], [128,191], [192,255]
