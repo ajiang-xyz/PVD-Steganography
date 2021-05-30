@@ -40,58 +40,64 @@
 ##################################################################################################################
 ##################################################################################################################
 
+# Matrix object that stores structures in a nested list format
 class Matrix(object):
-    def __init__(self, rows, columns=None, default=0):
-        self.rows = rows
-        self.columns = rows if columns == None else columns
+    def __init__(self, height, width=None, default=0):
+        self.height = height
+        self.width = height if width == None else width
         self.matrix = []
-        for i in range(self.rows):
-            self.matrix.append([default for j in range(self.columns)])
-        
+        for i in range(self.height):
+            self.matrix.append([default for j in range(self.width)])
+
     def __getitem__(self, index):
         return self.matrix[index]
 
+    # Copy function that returns a new, equal object of original 
     def copy(self):
-        copyMatrix = Matrix(self.rows, self.columns)
-        for i in range(self.rows):
-            for j in range(self.columns):
+        copyMatrix = Matrix(self.height, self.width)
+        for i in range(self.height):
+            for j in range(self.width):
                 copyMatrix[i][j] = self.matrix[i][j]
         return copyMatrix
-    
+
 def printMatrix(matrix):
-    for row in range(matrix.rows):
-        for column in range(matrix.columns):
+    for row in range(matrix.height):
+        for column in range(matrix.width):
             print(matrix[row][column], end=" ")
         print("")
 
-def pixelArrayToMatrix(loadedImage, channels) -> list:
-    # # Dev code for printing original, un-zig-zagged array of pixel values
+# from PIL.PngImagePlugin import PngImageFile, PngInfo
+from loguru import logger
+import imghdr
+import os
 
-    # imagePixels = list(loadedImage.getdata())
-    # index = 0
-    # for i in range(height):
-    #     for j in range(width):
-    #         pixelMatrix[i][j] = list(imagePixels[index])[0:3]
-    #         index += 1
-    # printMatrix(pixelMatrix)
-    # print()
+# Function to help user select file
+@logger.catch
+def promptPath():
+    # Array of types of supported images
+    imageTypes = ["png"]
 
+    # Get all files and directores in CWD
+    currentWorkingDirectory = os.getcwd()
+    files = [file for file in os.listdir(currentWorkingDirectory) if os.path.isfile(os.path.join(currentWorkingDirectory, file))]
+    directories = [folder for folder in os.listdir(currentWorkingDirectory) if os.path.isdir(os.path.join(currentWorkingDirectory, folder))]
+    
+    # Include files only if they're images
+    imageFiles = []
+    for file in files:
+        if imghdr.what(file) in imageTypes:
+            imageFiles.append(file)
 
-    # Horizontally zig-zag through matrix
-    # Split array of pixel values into nested: [[1,2],[3,4],[5,6],[7,8]] --> [[[1,2],[3,4]],[[5,6],[7,8]]]
-    # Size of chunk depends on width of image
+    # Include directories only if they're readable
+    readableDirectories = []
+    for directory in directories:
+        if os.access(directory, os.R_OK) == True:
+            readableDirectories.append(directory)
 
-    imagePixels = list(groupImagePixels(list(loadedImage.getdata()), width))
-    for row in range(height):
-        if row % 2 == 0:
-            # Even row of pixels, maintain order
-            for column in range(width):
-                pixelMatrix[row][column] = list(imagePixels[row][column])[0:channels]
-        else:
-            # Odd row of pixels, reverse order
-            for column in range(width-1, -1, -1):
-                # width-column-1 represents distance from "right edge" of matrix
-                pixelMatrix[row][width-column-1] = list(imagePixels[row][column])[0:channels]
+    # Display neatly
+    print(f"Supported images in current directory \"{currentWorkingDirectory}\":")
+    for imageFile in imageFiles:
+        print(imageFile)
+    print()
 
-    return pixelMatrix
-
+    return False

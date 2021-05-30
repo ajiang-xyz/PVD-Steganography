@@ -1,8 +1,6 @@
-with open("./pvd.py", "r") as pvd:
-    count = 0
-    for line in pvd:
-        line = line.strip()
-        if line != "" and "#" not in line:
-            count += 1
-
-    print(f"There are {count} lines in PVD.py")
+import sys
+with open(sys.argv[1],'r') as D:
+    B=0;C=0
+    for A in D:
+        if A.strip()!=''and'#'not in A.strip():B,C=B+1,C+1
+    print(f'{B} out of {C} lines in "{sys.argv[1]}" are code')

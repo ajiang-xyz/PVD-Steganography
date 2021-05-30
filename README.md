@@ -23,10 +23,12 @@ Root of PVD-Steganography
 │   ├── IO                                     IO directory for the PVD module
 │   │   ├── in.png                             Input PNG file
 │   │   └── out.png                            Output PNG file
-│   ├── deprecated items.py                    Contains deprecated chunks that I might want to reuse later
+│   ├── compact PVD.py                         A super short (and very not readable) version of PVD.py
+│   ├── deprecated.py                          Contains deprecated chunks that I might want to reuse later
 │   ├── line counter.py                        Counts number of code lines in PVD.py
 │   ├── PVD.py                                 Driver script file
 │   ├── requirements.txt                       Python module requirements file
+│   ├── test.py                                Dev testing file
 │   └── utils.py                               Helper file for PVD.py
 ├── Research                                   Research directory. Contains explanations of algorithms, any findings I make, etc
 │   ├── My Algorithms                          Contains explanations of the variation algorithms I created.
@@ -47,4 +49,4 @@ Root of PVD-Steganography
 
 >Wu, Da-Chun, and Wen-Hsiang Tsai. _A Steganographic Method for Images by Pixel Value Differencing_, Pattern Recognition Letters 24 (2003) 1613–1626, 29 Oct. 2001, https://people.cs.nctu.edu.tw/~whtsai/Journal%20Paper%20PDFs/Wu_&_Tsai_PRL_2003.pdf. Accessed 29 April 2021.
 
-> Hameed, Mohamed Abdel, et al. “A High Payload Steganography Method Based on Pixel Value Differencing.” _A High Payload Steganography Method Based on Pixel ValueDifferencing_, 11th International Conference on Informatics and Systems, 10 Dec. 2018, https://ssrn.com/abstract=3389800. Accessed 30 April 2021.
+> Hameed, Mohamed Abdel, et al. “A High Payload Steganography Method Based on Pixel Value Differencing.” _A High Payload Steganography Method Based on Pixel Value Differencing_, 11th International Conference on Informatics and Systems, 10 Dec. 2018, https://ssrn.com/abstract=3389800. Accessed 30 April 2021.

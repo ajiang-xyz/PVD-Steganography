@@ -60,3 +60,72 @@ def executionTime(function):
 		postTime = int(round(time.time() * 1000))
 		print(f"Time elapsed: {postTime - preTime} ms", end="\n\n")
 	return timedFunction
+
+def validateQuantization(quantizationWidths: list=[], verbose: bool=False):
+    if quantizationWidths == []:
+        quantizationWidths = [
+                            [0,1], [2,3], [4,7], [8,11], [12,15], [16,23], [24,31], [32,47], 
+                            [48,63], [64,95], [96,127], [128,191], [192,255]
+                            ]
+        if verbose:
+            print("Verbose message: no quantization widths provided, using the default values")
+
+        return quantizationWidths
+    else:
+        # Check validity of quantization widths argument
+        valuesCovered = set()
+        for quantizationWidth in quantizationWidths:
+            # Ensure each width is of size one less than a power of 2
+            log = math.log(quantizationWidth[1] - quantizationWidth[0] + 1, 2)
+            if math.ceil(log) != math.floor(log):
+                raise Exception(f"Width of each quantization must be one less than a power of 2 (found width of {quantizationWidth[1] - quantizationWidth[0] + 1} instead)")
+
+            # Ensure no widths overlap
+            quantizationWidthSet = range(quantizationWidth[0], quantizationWidth[1] + 1)
+            if list(set.intersection(valuesCovered, quantizationWidthSet)) == []:
+                # Ranges don't overlap, merge with previously covered values
+                valuesCovered = set.union(valuesCovered, quantizationWidthSet)
+            else:
+                # Ranges overlap
+                raise Exception("Quantization ranges must not overlap")
+            
+        # Test to ensure ranges cover all values 0 to 255
+        if valuesCovered != set(range(0,256)):
+            expectedVals = set(range(0,256))
+            missing = list(expectedVals - valuesCovered)
+            extra = list(valuesCovered - expectedVals)
+            if missing != [] and extra != []:
+                builtText = f"(missing items {missing} and found extra items {extra} instead)"
+            elif missing == []:
+                builtText = f"(found extra items {extra} instead)"
+            else:
+                builtText = f"(missing items {missing} instead)"
+            
+            raise Exception(f"Quantization ranges must cover all values from 0 to 255 and no more {builtText}")
+
+    return quantizationWidths
+
+def validateTraversal(traversalOrder: list=[], verbose: bool=False):
+    # Check validity of traversal order argument
+    if traversalOrder == []:
+        traversalOrder = [1,3,5,2,4,6]
+        if verbose:
+            print("Verbose message: no traversal order provided, using the default value")
+
+        return traversalOrder
+    elif len(traversalOrder) != 6:
+        raise Exception("Traversal order must be of length 6")
+    
+    # Check traversal order for non-integer values
+    for order in traversalOrder:
+        if isinstance(order, int) == False:
+            try:
+                traversalOrder[traversalOrder.index(order)] = int(order)
+            except:
+                raise Exception(f"Traversal order must contain integer values (found {type(order)} at index {traversalOrder.index(order)} instead)")
+
+    # Ensure traversal order is a list of consecutive numbers
+    if sorted(traversalOrder) == list(range(min(traversalOrder), max(traversalOrder)+1)):
+        raise Exception("Traversal order must be comprised of consecutive integers e.g. [1,3,5,2,4,6]")
+
+    return traversalOrder
