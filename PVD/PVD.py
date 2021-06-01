@@ -1,4 +1,4 @@
-from PIL.PngImagePlugin import PngImageFile, PngInfo
+from PIL.PngImagePlugin import PngImageFile
 from utils import *
 import numpy as np
 import itertools
@@ -39,8 +39,8 @@ def rgbChannels(loadedImage: PIL.PngImagePlugin.PngImageFile, message: str="", q
         if verbose:
             print("Verbose message: no message given, assuming retrieval of message")
 
-    quantizationWidths = validateQuantization(quantizationWidths, True)
-    traversalOrder = validateTraversal(traversalOrder, True)
+    quantizationWidths = validateQuantization(quantizationWidths, verbose)
+    traversalOrder = validateTraversal(traversalOrder, verbose)
 
     # If there is an Alpha channel present in the image, it is ignored
     pixelPairs = pixelArrayToZigZag(loadedImage, 3, 2)
@@ -160,7 +160,7 @@ def rgbChannels(loadedImage: PIL.PngImagePlugin.PngImageFile, message: str="", q
                             if currentMessageIndex == len(messageBinary):
                                 # Finished encoding entire message
                                 currentMessageIndex = len(messageBinary)
-                                postEncodingValues += pixelPair
+                                postEncodingValues += traversedPixelPair
                                 continue
                             else:
                                 # Can encode more bits than available, encode what's left
@@ -179,26 +179,19 @@ def rgbChannels(loadedImage: PIL.PngImagePlugin.PngImageFile, message: str="", q
                         # Calculate new pixel pair
                         newPixelPair = pixelPairEncode(traversedPixelPair, differencePrime, difference)                    
                         postEncodingValues += newPixelPair
-                
-                # Flatten encoded value pair array into un-nested list
-                # pixelArray = [pixel for pair in postEncodingValues for pixel in pair]
 
                 # Un-sort pixel array given traversal order and group into calculation original RGB channels
-                # pixelIndicesDict = dict(sorted(dict(zip(traversalIndiceDict, postEncodingValues)).items()))
                 pixelIndicesDict = dict(sorted(dict(zip([ key[1] for key in pixelIndicesDict.keys() ], postEncodingValues)).items()))
                 reversedPaired = list(groupImagePixels([pixel for pixel in pixelIndicesDict.values()], 3))
 
                 newPixels += reversedPaired
-
-                print(pixelPair)
-                print(reversedPaired)
             else:
                 # For case in which there's an odd number of pixels; append lone pixel value
                 newPixels += pixelPair
 
         returnValue = True
         if currentMessageIndex != len(messageBinary):
-            print(f"Warning: only {len(messageBinary[0:currentMessageIndex])} of {len(messageBinary)} bits encoded")
+            print(f"Warning: only encoded {len(messageBinary[0:currentMessageIndex])} of {len(messageBinary)} bits ({round(100*len(messageBinary[0:currentMessageIndex])/len(messageBinary), 2)}%)")
             print(f"\nOriginal message: {message}")
             returnValue = False
 
@@ -246,7 +239,7 @@ def singleChannel(loadedImage: PIL.PngImagePlugin.PngImageFile, message: str="",
         if verbose:
             print("Verbose message: no message given, assuming retrieval of message")
 
-    quantizationWidths = validateQuantization(quantizationWidths, True)
+    quantizationWidths = validateQuantization(quantizationWidths, verbose)
 
     pixelPairs = pixelArrayToZigZag(loadedImage, 1, 2)
 
@@ -302,7 +295,7 @@ def singleChannel(loadedImage: PIL.PngImagePlugin.PngImageFile, message: str="",
         currentMessageIndex = 0
 
         for pixelPair in pixelPairs:
-            if len(pixelPair) == 2 and currentMessageIndex < len(messageBinary) - 1:
+            if len(pixelPair) == 2 and currentMessageIndex < len(messageBinary):
                 # d value
                 difference = pixelPair[1] - pixelPair[0]
 
@@ -362,7 +355,7 @@ def singleChannel(loadedImage: PIL.PngImagePlugin.PngImageFile, message: str="",
 
         returnValue = True
         if currentMessageIndex != len(messageBinary):
-            print(f"Warning: only {len(messageBinary[0:currentMessageIndex])} of {len(messageBinary)} bits encoded")
+            print(f"Warning: only encoded {len(messageBinary[0:currentMessageIndex])} of {len(messageBinary)} bits ({round(100*len(messageBinary[0:currentMessageIndex])/len(messageBinary), 2)}%)")
             print(f"\nOriginal message: {message}")
             returnValue = False
 
@@ -395,16 +388,16 @@ def singleChannel(loadedImage: PIL.PngImagePlugin.PngImageFile, message: str="",
 @executionTime
 def main():
     print("Beginning execution...")
-    imagePath = "./IO/outColor.png"
+    imagePath = "./IO/in.png"
     loadedImage = PIL.Image.open(imagePath)
 
     # 24-bit RGB image; ignores Alpha channel
     if "RGB" in loadedImage.mode.upper():
-        returnValue = rgbChannels(loadedImage, traversalOrder=[], verbose=True)
+        returnValue = rgbChannels(loadedImage, message="hello world!", verbose=True)
     
     # 8-bit Black & White image
     elif loadedImage.mode.upper() == "L":
-        returnValue = singleChannel(loadedImage, message="hi", verbose=True)
+        returnValue = singleChannel(loadedImage, message="hello", verbose=True)
     else:
         raise Exception(f"The image located at {imagePath} is not in a supported format.")
 
@@ -418,5 +411,12 @@ def main():
     else:
         print(f"Retrieved binary: {returnValue}")
 
+def test():
+    print("Beginning execution...")
+    imagePath = "./IO/in.png"
+    loadedImage = PIL.Image.open(imagePath)
+    returnVals = getMaxStorage(loadedImage, verbose=True)
+    print(f"{returnVals[0]} {returnVals[1]}")
+
 if __name__ == "__main__":
-    main()
+    test()

@@ -1,7 +1,18 @@
 fix research readmes, set up different files for algorithms
-~~- add visualizations~~
 - add explanation of check
 
-~~remove pixelmatrix usage~~
+set up settings file (unsure)
+add encoding function argument to use cryptographic algorithm
+optimize functions
 
-set up settings file, work on rgb variants
+create option selection menu
+- create file selection
+
+~~add function to calculate maximum storage potential in image *~~
+
+allocate first section encoding for number of bits in message *
+- enough bits to accomodate message filling entire file 
+
+~~bugfix b&w channel encoding ***~~
+
+work on flask frontend

@@ -129,3 +129,88 @@ def validateTraversal(traversalOrder: list=[], verbose: bool=False):
         raise Exception("Traversal order must be comprised of consecutive integers e.g. [1,3,5,2,4,6]")
 
     return traversalOrder
+
+
+from PIL.PngImagePlugin import PngImageFile
+import PIL
+
+def getMaxStorage(loadedImage: PIL.PngImagePlugin.PngImageFile, quantizationWidths: list=[],
+                    traversalOrder: list=[], verbose: bool=False):
+    """
+    This function calculates the maximum number of storable bits in a an image file, given 
+    a traversal order (for RGB images) and quantization widths.
+    """
+    quantizationWidths = validateQuantization(quantizationWidths, verbose)
+    traversalOrder = validateTraversal(traversalOrder, verbose)
+
+    storableCount = 0
+    if "RGB" in loadedImage.mode.upper():
+        pixelPairs = pixelArrayToZigZag(loadedImage, 3, 2)
+        currentPairCounter = 0
+        for pixelPair in pixelPairs:
+            currentPairCounter += 1
+            if len(pixelPair) == 2:
+                # Flatten pixel pair array into un-nested list
+                pixelArray = [pixel for pair in pixelPair for pixel in pair]
+
+                # Sort pixel array given traversal order and group into calculation ready pairs
+                pixelIndicesDict = dict(sorted(dict(zip(traversalOrder, pixelArray)).items()))
+                traversedPixelPairs = list(groupImagePixels(list(pixelIndicesDict.values()), 2))
+
+                currentTraversedCounter = 0
+                for traversedPixelPair in traversedPixelPairs:
+                    currentTraversedCounter += 1
+                    # d value
+                    difference = traversedPixelPair[1] - traversedPixelPair[0]
+
+                    # Determine number of bits storable between pixels
+                    for width in quantizationWidths:
+                        if width[0] <= abs(difference) <= width[1]:
+                            lowerBound = width[0]
+                            upperBound = width[1]
+                            break
+                    
+                    # Falling-off-boundary check; ensure 0 < calculated pixel value < 255
+                    testingPair = pixelPairEncode(traversedPixelPair, upperBound, difference)
+                    if testingPair[0] < 0 or testingPair[1] < 0 or testingPair[0] > 255 or testingPair[1] > 255:
+                        # One of the values "falls-off" the range from 0 to 255 and hence is invalid
+                        if verbose == True:
+                            print(f"Verbose message: channel pair number {currentTraversedCounter} in pixel pair number {currentPairCounter} has the possibility of falling off; skipping")
+                    else:
+                        # Passes the check, continue with decoding
+                        # Number of storable bits between two pixels
+                        storableCount += int(math.log(upperBound - lowerBound + 1, 2))
+    elif loadedImage.mode.upper() == "L":
+        pixelPairs = pixelArrayToZigZag(loadedImage, 1, 2)
+
+        currentPairCounter = 0
+        for pixelPair in pixelPairs:
+            currentPairCounter += 1
+            if len(pixelPair) == 2:
+                difference = pixelPair[1] - pixelPair[0]
+
+                # Determine number of bits storable between pixels
+                for width in quantizationWidths:
+                    if width[0] <= abs(difference) <= width[1]:
+                        lowerBound = width[0]
+                        upperBound = width[1]
+                        break
+                
+                # Falling-off-boundary check; ensure 0 < calculated pixel value < 255
+                testingPair = pixelPairEncode(pixelPair, upperBound, difference)
+                if testingPair[0] < 0 or testingPair[1] < 0 or testingPair[0] > 255 or testingPair[1] > 255:
+                    # One of the values "falls-off" the range from 0 to 255 and hence is invalid
+                    if verbose == True:
+                        print(f"Verbose message: pixel pair number {currentPairCounter} has the possibility of falling off; skipping")
+                else:
+                    # Passes the check, continue with decoding
+                    # Number of storable bits between two pixels
+                    storableCount += int(math.log(upperBound - lowerBound + 1, 2))
+
+    power = 1024
+    counter = 0
+    labels = {0 : "", 1: "kilo", 2: "mega", 3: "giga", 4: "tera", 5:"peta"}
+    while storableCount > power:
+        storableCount /= power
+        counter += 1
+    return round(storableCount, 2), labels[counter]+"bits"
