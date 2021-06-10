@@ -1,72 +1,178 @@
 print("Executing...")
 
-storableCount = 69420
+import functools
+def wrapper(function):
+    print(locals())
+    @functools.wraps(function)
+    def wrappedFunction(*args, **kwargs):
+        print("Locals:")
+        print(locals())
+        return function(*args, **kwargs)
+    return wrappedFunction
 
-power = 1024
-counter = 0
-labels = {0 : "", 1: "K", 2: "M", 3: "G", 4: "T", 5:"P"}
-while storableCount > power:
-    storableCount /= power
-    counter += 1
-print(f"{storableCount} {labels[counter]}B")
+@wrapper
+def testing1(arg1, arg2):
+    print(locals())
+    return arg1+arg2
 
-# def logisticMap(currentTerm, r, numberToCalculate):
-#     if numberToCalculate == 0:
-#         return currentTerm
-#     else:
-#         return logisticMap(r*currentTerm*(1-currentTerm), r, numberToCalculate-1)
-
-# # pixel pair
-# def pixelRandom(pair):
-#     difference = abs(pair[1] - pair[0])
-
-#     # logistic map
-#     currentTerm = (0.99999-0.00001)*(difference)/(255)+0.00001
-
-#     # scale difference to some value between approximate beginning of chaos in logistic map to the value just below divergence
-#     r = (3.99999-3.56998)*(difference^5)/(255)+3.56998
-
-#     # calculate bit flip of difference for number of terms to calculate
-#     numberToCalculate = 500 # int(bin((difference ^ (2 ** (difference.bit_length()+1) - 1)))[3:], 2)
-
-#     # print(f"current term: {currentTerm}\nr: {r}\nnumber to calculate: {numberToCalculate}")
-
-#     testing = logisticMap(currentTerm, r, numberToCalculate)
-#     # print(f"final value: {testing}")
-#     return testing
-
-# import random
-# def calculatePercent():
-#     counter = {str(i):0 for i in range(10)}
-#     for i in range(50000):
-#         pair = [random.randint(0, 255), random.randint(0, 255)]
-#         if pair[1] != pair[0]:
-#             randomValue = pixelRandom(pair)
-#             counter[str(randomValue)[2]] += 1
-
-#     valueCount = sum(counter.values())
-#     returnList = []
-#     for count in counter:
-#         returnList.append(counter[count]/valueCount*100)
-#     return returnList
-
-# counter = calculatePercent()
-# for i in range(1):
-#     returnList = calculatePercent()
-#     counter = [(pair[0]+pair[1])/2 for pair in list(zip(counter, returnList))]
-#     print(counter)
-
-# testing = list(dict(sorted(dict(zip(counter, [0,1,2,3,4,5,6,7,8,9])).items())).values())
-# print(testing[::-1])
-        
+print(testing1(1,5))
 
 
+# import hashlib
+# import math 
 
-# # finalTerms = []
-# # for i in range(10000):
-# #     pair = [random.randint(0, 255), random.randint(0, 255)]
-# #     if pair[1] != pair[0]:
-# #         # print(f"pair: {pair}")
-# #         randomValue = pixelRandom(pair)
-# #         finalTerms.append(str(randomValue)[2])
-# #     # print()
+# def rosenburgStrongPairing(argument, reverse=False):
+#     """
+#     Implementation of the Rosenburg-Strong Pairing Function
+#     """
+#     if reverse:
+#         m = math.floor(math.sqrt(argument))
+#         if argument-m**2<m:
+#             return [int(argument-m**2), int(m)]
+#         return [int(m), int(m**2+2*m-argument)]
+
+#     x, y = argument
+#     return (max(x,y))**2+max(x,y)+x-y
+
+# def embedLength(message):
+#     """
+#     This function zig-zags the bit length of the message into the message hash
+#     """
+
+#     originalHash = hashlib.sha256(message.encode()).hexdigest()
+#     modifiedHash = originalHash
+
+#     remainingLength = str(len(str(bin(int.from_bytes(message.encode(), "big")))[2:]) + 1)
+#     if len(remainingLength) % 2 == 1:
+#         modifiedHash = remainingLength[0] + modifiedHash
+#         remainingLength = remainingLength[1:]
+
+#     while len(remainingLength) > 0:
+#         modifiedHash = remainingLength[0] + modifiedHash + remainingLength[1]
+#         remainingLength = remainingLength[2:]
+
+#     return modifiedHash
+
+# def retrieveLength(modifiedHash):
+#     """
+#     This function retrieves the bit length from hash modified by embedLength()
+#     """
+#     bitLength = ""
+#     while len(modifiedHash) > 65:
+#         bitLength += modifiedHash[-1] + modifiedHash[0]
+#         modifiedHash = modifiedHash[1:len(modifiedHash)-1]
+
+#     if len(modifiedHash) == 65:
+#         bitLength += modifiedHash[0]
+#         modifiedHash = modifiedHash[1:]
+
+#     bitLength = bitLength[::-1]
+#     return bitLength
+
+# # test = {}
+# # test[rosenburgStrongPairing([5,5])] = embedLength("hi")
+# # print(test)
+
+# # Code to modify metadata values
+# from PIL.PngImagePlugin import PngImageFile, PngInfo
+
+# # Edit PNG metadata to include fingerprint of this PVD algorithm
+# modifyMetadata = PngImageFile("./IO/outCopy.png")
+# metadata = PngInfo()
+# metadata.add_text("png:fingerprint", f"{rosenburgStrongPairing([5,5])}:{embedLength('hi')}")
+# modifyMetadata.save("./IO/outCopy.png", pnginfo=metadata)
+
+# testEncoded = PngImageFile("./IO/outCopy.png")
+# print(testEncoded.size)
+# print(testEncoded.text)
+
+
+
+# verificationData: PIL.PngImagePlugin.PngImageFile=False,
+
+# Verify image data
+        # if verificationData:
+            # verifications = verificationData["png:fingerprint"].split(":")
+            # imageWidth, imageHeight = rosenburgStrongPairing(verifications[0])
+            # bitLength, messageHash = retrieveLength(verifications[1])
+
+            # if loadedImage.size[0] != imageWidth or loadedImage.size[1] != imageHeight:
+            #     raise Exception(f"Image verification failed. Image dimensions don't match encoded verification data.")
+
+# if verificationData:
+            # if len(messageBinary) >= bitLength:
+            #     messageBinary = messageBinary[:bitLength]
+            #     if hashlib.sha256(messageBinary.encode()).hexdigest() == messageHash:
+            #         return messageBinary
+            #     else:
+            #         raise Exception(f"Message verification failed. Hash of retrieved binary doesn't match encoded verification data.")
+            # raise Exception("Message verification failed. Length of retrieved message binary doesn't match encoded verification data.")
+
+
+# import math
+# def rosenburgStrongPairing(argument, reverse=False):
+#     """
+#     Implementation of the Rosenburg-Strong Pairing Function
+#     """
+#     if reverse:
+#         m = math.floor(math.sqrt(argument))
+#         if argument-m**2<m:
+#             return [int(argument-m**2), int(m)]
+#         return [int(m), int(m**2+2*m-argument)]
+
+#     x, y = argument
+#     print(argument)
+#     return (max(x,y))**2+max(x,y)+x-y
+
+# uniqueID = rosenburgStrongPairing([10000, 15129])
+# test = rosenburgStrongPairing(uniqueID, True)
+# print(uniqueID)
+# print(test)
+
+# import math
+# def cantorPairing(argument, reverse=False):
+#     if reverse:
+#         w = math.floor((math.sqrt(8*argument+1)-1)/2)
+#         t = (w**2+w)/2
+#         y = argument - t
+#         x = w - y
+#         return x, y
+#     x, y = argument
+#     return (x+y+1)(x+y)/2 + y
+
+
+# # Code to zip message length into hash 
+# import hashlib
+
+# def embedLength(bitLength, message):
+#     originalHash = hashlib.sha256(message.encode()).hexdigest()
+#     modifiedHash = originalHash
+
+#     remainingLength = bitLength
+#     if len(remainingLength) % 2 == 1:
+#         modifiedHash = remainingLength[0] + modifiedHash
+#         remainingLength = remainingLength[1:]
+
+#     while len(remainingLength) > 0:
+#         modifiedHash = remainingLength[0] + modifiedHash + remainingLength[1]
+#         remainingLength = remainingLength[2:]
+
+#     print(originalHash)
+#     print(modifiedHash)
+
+#     return modifiedHash
+
+# def retrieveLength(modifiedHash):
+#     message = ""
+#     while len(modifiedHash) > 65:
+#         message += modifiedHash[-1] + modifiedHash[0]
+#         modifiedHash = modifiedHash[1:len(modifiedHash)-1]
+#     if len(modifiedHash) == 65:
+#         message += modifiedHash[0]
+#         modifiedHash = modifiedHash[1:]
+
+#     message = message[::-1]
+#     print(message)
+
+# modifiedHash = embedLength("19383", "hi")
+# retrieveLength(modifiedHash)

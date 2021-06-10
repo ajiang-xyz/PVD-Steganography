@@ -45,8 +45,10 @@ Root of PVD-Steganography
 ```
 
 
-## Resources
+## References
 
 >Wu, Da-Chun, and Wen-Hsiang Tsai. _A Steganographic Method for Images by Pixel Value Differencing_, Pattern Recognition Letters 24 (2003) 1613–1626, 29 Oct. 2001, https://people.cs.nctu.edu.tw/~whtsai/Journal%20Paper%20PDFs/Wu_&_Tsai_PRL_2003.pdf. Accessed 29 April 2021.
 
 > Hameed, Mohamed Abdel, et al. “A High Payload Steganography Method Based on Pixel Value Differencing.” _A High Payload Steganography Method Based on Pixel Value Differencing_, 11th International Conference on Informatics and Systems, 10 Dec. 2018, https://ssrn.com/abstract=3389800. Accessed 30 April 2021.
+
+> Szudzik, Matthew P. _The Rosenberg-Strong Pairing Function_, ArXiv, 28 Jan. 2019, https://arxiv.org/pdf/1706.04129.pdf. Accessed 3 June 2021.

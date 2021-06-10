@@ -1,18 +1,34 @@
+completed?
+allocate first section encoding for number of bits in message
+- enough bits to accomodate message filling entire file 
+- create some wacky encoding for metadata
+- create verification wrapper function architecture
+
+add argument to use transformative functions
+- add class with encode / decode & compress / decompress methods
+- add transformation verification check
+
+
+working on:
+change functions to accept only binary, not ascii
+
+
+todo:
 fix research readmes, set up different files for algorithms
 - add explanation of check
 
-set up settings file (unsure)
-add encoding function argument to use cryptographic algorithm
 optimize functions
+- concatenate sections of functions
 
 create option selection menu
 - create file selection
 
-~~add function to calculate maximum storage potential in image *~~
+~~add function to calculate maximum storage potential in image~~
 
-allocate first section encoding for number of bits in message *
-- enough bits to accomodate message filling entire file 
+update readme to reflect supported functions
+- add note saying i created everything except algorithms listed in cited papers :D 
 
-~~bugfix b&w channel encoding ***~~
+considering:
+set up settings file (?)
 
-work on flask frontend
+work on flask frontend (?)

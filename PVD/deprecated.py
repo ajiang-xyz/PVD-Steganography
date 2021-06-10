@@ -101,3 +101,14 @@ def promptPath():
     print()
 
     return False
+
+from PIL.PngImagePlugin import PngImageFile, PngInfo
+
+# Edit PNG metadata to include fingerprint of this PVD algorithm
+modifyMetadata = PngImageFile("outCopy.png")
+metadata = PngInfo()
+metadata.add_text("46", "209")
+modifyMetadata.save("outCopy.png", pnginfo=metadata)
+
+testEncoded = PngImageFile("./outCopy.png")
+print(testEncoded.text)
