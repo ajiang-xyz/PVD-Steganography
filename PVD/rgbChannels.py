@@ -55,17 +55,23 @@ def rgbChannels(loadedImage: PIL.PngImagePlugin.PngImageFile, message: str="", q
 
                 # Ensure hashes match
                 if hashlib.sha256(retrievedBinary.encode()).hexdigest() == messageHash:
+                    print("\nVerified.")
                     return retrievedBinary
                 else:
                     raise Exception(f"Message verification failed. Hash of retrieved binary doesn't match encoded verification data.")
             raise Exception("Message verification failed. Length of retrieved message binary doesn't match encoded verification data.")
         else:
-            returnValue = rgbChannels(loadedImage, message, quantizationWidths, traversalOrder, verbose=verbose)
+            # Get binary of message
+            if sorted(set(message)) == ["0", "1"]:
+                messageBinary = message
+            else:
+                messageBinary = "0" + str(bin(int.from_bytes(message.encode(), "big")))[2:]
+                
+            returnValue = rgbChannels(loadedImage, messageBinary, quantizationWidths, traversalOrder, verbose=verbose)
 
             # Build verification data to place in loaded image properties
             verificationBuilder = ""
             verificationBuilder += f"{str(rosenburgStrongPairing([loadedImage.size[0], loadedImage.size[1]]))}:"
-            messageBinary = "0" + str(bin(int.from_bytes(message.encode(), "big")))[2:]
             verificationBuilder += f"{embedLength(str(len(messageBinary)), messageBinary)}"
 
             # Edit PNG metadata to include fingerprint of this PVD algorithm
@@ -74,6 +80,7 @@ def rgbChannels(loadedImage: PIL.PngImagePlugin.PngImageFile, message: str="", q
             metadata.add_text("png:fingerprint", f"{verificationBuilder}")
             modifyMetadata.save("./IO/outColor.png", pnginfo=metadata)
 
+            print("\nVerified.")
             return returnValue
 
     print()
@@ -81,6 +88,16 @@ def rgbChannels(loadedImage: PIL.PngImagePlugin.PngImageFile, message: str="", q
     if message == "":
         if verbose:
             print("Verbose message: no message given, assuming retrieval of message")
+    else:
+        # Get binary of message
+        if sorted(set(message)) == ["0", "1"]:
+            messageBinary = message
+            if verbose:
+                print("Verbose message: message contains only binary values, assuming binary message")
+        else:
+            messageBinary = "0" + str(bin(int.from_bytes(message.encode(), "big")))[2:]
+            if verbose:
+                print("Verbose message: message contains non-binary values, assuming ascii message")
 
     quantizationWidths = validateQuantization(quantizationWidths, verbose)
     traversalOrder = validateTraversal(traversalOrder, verbose)
@@ -127,7 +144,7 @@ def rgbChannels(loadedImage: PIL.PngImagePlugin.PngImageFile, message: str="", q
                     if testingPair[0] < 0 or testingPair[1] < 0 or testingPair[0] > 255 or testingPair[1] > 255:
                         # One of the values "falls-off" the range from 0 to 255 and hence is invalid
                         if verbose == True:
-                            print(f"Verbose message: channel pair number {currentTraversedCounter} in pixel pair number {currentPairCounter} has the possibility of falling off; skipping")
+                            print(f"Verbose message: channel pair number {currentTraversedCounter} in pixel pair number {currentPairCounter} has the possibility of falling off, skipping")
                     else:
                         # Passes the check, continue with decoding
                         # Number of storable bits between two pixels
@@ -149,14 +166,12 @@ def rgbChannels(loadedImage: PIL.PngImagePlugin.PngImageFile, message: str="", q
         
         return messageBinary
     else:
-        print(f"Encoding binary \"{message}\" into file \"{loadedImage.filename}\"")
+        print(f"Encoding binary \"{messageBinary}\" into file \"{loadedImage.filename}\"")
         print()
 
         # Encoding function
         newPixels = []
 
-        # Get binary of message
-        messageBinary = "0" + str(bin(int.from_bytes(message.encode(), "big")))[2:]
         currentMessageIndex = 0
 
         currentPairCounter = 0
@@ -194,7 +209,7 @@ def rgbChannels(loadedImage: PIL.PngImagePlugin.PngImageFile, message: str="", q
                         # Append original pixel pair and skip encoding
                         postEncodingValues += traversedPixelPair
                         if verbose:
-                            print(f"Verbose message: channel pair number {currentTraversedCounter} in pixel pair number {currentPairCounter} has the possibility of falling off; skipping")
+                            print(f"Verbose message: channel pair number {currentTraversedCounter} in pixel pair number {currentPairCounter} has the possibility of falling off, skipping")
                     else:
                         # Passes the check, continue with encoding
                         # Number of storable bits between two pixels

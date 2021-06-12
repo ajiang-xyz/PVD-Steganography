@@ -24,6 +24,16 @@ def singleChannel(loadedImage: PIL.PngImagePlugin.PngImageFile, message: str="",
     if message == "":
         if verbose:
             print("Verbose message: no message given, assuming retrieval of message")
+    else:
+        # Get binary of message
+        if sorted(set(message)) == ["0", "1"]:
+            messageBinary = message
+            if verbose:
+                print("Verbose message: message contains only binary values, assuming binary message")
+        else:
+            messageBinary = "0" + str(bin(int.from_bytes(message.encode(), "big")))[2:]
+            if verbose:
+                print("Verbose message: message contains non-binary values, assuming ascii message")
 
     quantizationWidths = validateQuantization(quantizationWidths, verbose)
 
@@ -78,14 +88,12 @@ def singleChannel(loadedImage: PIL.PngImagePlugin.PngImageFile, message: str="",
 
         return messageBinary
     else:
-        print(f"Encoding binary \"{message}\" into file \"{loadedImage.filename}\"")
+        print(f"Encoding binary \"{messageBinary}\" into file \"{loadedImage.filename}\"")
         print()
 
         # Encoding function
         newPixels = []
 
-        # Get binary of message
-        messageBinary = "0" + str(bin(int.from_bytes(message.encode(), "big")))[2:]
         currentMessageIndex = 0
 
         for pixelPair in pixelPairs:

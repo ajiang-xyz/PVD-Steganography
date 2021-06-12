@@ -8,12 +8,12 @@ def main():
     Main driver function
     """
 
-    imagePath = "./IO/inColor.png"
+    imagePath = "./IO/outColor.png"
     loadedImage = PIL.Image.open(imagePath)
 
     # 24-bit RGB image; ignores Alpha channel
     if "RGB" in loadedImage.mode.upper():
-        returnValue = rgbChannels(loadedImage, message="hello world!", verify=True, verbose=True)
+        returnValue = rgbChannels(loadedImage, message="", verify=True, verbose=True)
     
     # 8-bit Black & White image
     elif loadedImage.mode.upper() == "L":
