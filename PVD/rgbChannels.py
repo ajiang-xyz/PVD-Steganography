@@ -5,9 +5,8 @@ import itertools
 import PIL
 import os
 
-def rgbChannels(loadedImage: PIL.PngImagePlugin.PngImageFile, message: str="", quantizationWidths: list=[],
-                    traversalOrder: list=[], verify: bool=False, verbose: bool=False):
-
+def rgbChannels(inFile: PIL.PngImagePlugin.PngImageFile, message: str="", quantizationWidths: list=[],
+                    traversalOrder: list=[], outFile="./IO/outColor.png", verify: bool=False, verbose: bool=False):
     """
     This function takes takes an image of the form
     [
@@ -37,17 +36,23 @@ def rgbChannels(loadedImage: PIL.PngImagePlugin.PngImageFile, message: str="", q
     # Verify image data
     if verify:
         print("Beginning verification...")
+        
         if message == "":
-            verificationData = loadedImage.text["png:fingerprint"].split(":")
+            try:
+                verificationData = inFile.text["png:fingerprint"].split(":")
+            except:
+                raise Exception(f"No verification data found.")
+            
+            # Retrieve verifiable data from image properties
             imageWidth, imageHeight = rosenburgStrongPairing(int(verificationData[0]), reverse=True)
             bitLength, messageHash = retrieveLength(verificationData[1])
 
             # Image dimensions are incorrect
-            if loadedImage.size[0] != imageWidth or loadedImage.size[1] != imageHeight:
+            if inFile.size[0] != imageWidth or inFile.size[1] != imageHeight:
                 raise Exception(f"Image verification failed. Image dimensions don't match encoded verification data.")
 
             # Execute function without verifying data option
-            retrievedBinary = rgbChannels(loadedImage, message, quantizationWidths, traversalOrder, verbose=verbose)
+            retrievedBinary = rgbChannels(inFile, message, quantizationWidths, traversalOrder, outFile, verbose=verbose)
             
             # Ensure entire message was encoded
             if len(retrievedBinary) >= bitLength:
@@ -67,18 +72,18 @@ def rgbChannels(loadedImage: PIL.PngImagePlugin.PngImageFile, message: str="", q
             else:
                 messageBinary = "0" + str(bin(int.from_bytes(message.encode(), "big")))[2:]
                 
-            returnValue = rgbChannels(loadedImage, messageBinary, quantizationWidths, traversalOrder, verbose=verbose)
+            returnValue = rgbChannels(inFile, messageBinary, quantizationWidths, traversalOrder, outFile, verbose=verbose)
 
             # Build verification data to place in loaded image properties
             verificationBuilder = ""
-            verificationBuilder += f"{str(rosenburgStrongPairing([loadedImage.size[0], loadedImage.size[1]]))}:"
+            verificationBuilder += f"{str(rosenburgStrongPairing([inFile.size[0], inFile.size[1]]))}:"
             verificationBuilder += f"{embedLength(str(len(messageBinary)), messageBinary)}"
 
             # Edit PNG metadata to include fingerprint of this PVD algorithm
-            modifyMetadata = PngImageFile("./IO/outColor.png")
+            modifyMetadata = PngImageFile(outFile)
             metadata = PngInfo()
             metadata.add_text("png:fingerprint", f"{verificationBuilder}")
-            modifyMetadata.save("./IO/outColor.png", pnginfo=metadata)
+            modifyMetadata.save(outFile, pnginfo=metadata)
 
             print("\nVerified.")
             return returnValue
@@ -105,11 +110,11 @@ def rgbChannels(loadedImage: PIL.PngImagePlugin.PngImageFile, message: str="", q
     print()
 
     # If there is an Alpha channel present in the image, it is ignored
-    pixelPairs = pixelArrayToZigZag(loadedImage, 3, 2)
+    pixelPairs = pixelArrayToZigZag(inFile, 3, 2)
 
     # If function is run without message, assume retrieval of message
     if message == "":
-        print(f"Retrieving binary from file \"{loadedImage.filename}\"")
+        print(f"Retrieving binary from file \"{inFile.filename}\"")
         print()
 
         # Retrieval function
@@ -151,11 +156,7 @@ def rgbChannels(loadedImage: PIL.PngImagePlugin.PngImageFile, message: str="", q
                         storableCount = int(math.log(upperBound - lowerBound + 1, 2))
                         
                         # Extract encoded decimal
-                        if difference >= 0:
-                            retrievedDecimal = difference - lowerBound
-                        else:
-                            retrievedDecimal = - difference - lowerBound
-
+                        retrievedDecimal = difference - lowerBound if difference >= 0 else - difference - lowerBound
                         retrievedBinary = bin(retrievedDecimal).replace("0b", "")
 
                         # Edge case in which embedded data began with 0's
@@ -166,7 +167,7 @@ def rgbChannels(loadedImage: PIL.PngImagePlugin.PngImageFile, message: str="", q
         
         return messageBinary
     else:
-        print(f"Encoding binary \"{messageBinary}\" into file \"{loadedImage.filename}\"")
+        print(f"Encoding binary \"{messageBinary}\" into file \"{inFile.filename}\"")
         print()
 
         # Encoding function
@@ -197,7 +198,8 @@ def rgbChannels(loadedImage: PIL.PngImagePlugin.PngImageFile, message: str="", q
 
                     # Determine number of bits storable between pixels
                     for width in quantizationWidths:
-                        if width[0] <= abs(difference) <= width[1]:
+                        # Only need to check upper bound because widths are sorted
+                        if abs(difference) <= width[1]:
                             lowerBound = width[0]
                             upperBound = width[1]
                             break
@@ -218,13 +220,11 @@ def rgbChannels(loadedImage: PIL.PngImagePlugin.PngImageFile, message: str="", q
                         # Ensure haven't already finished encoding entire message
                         if currentMessageIndex + storableCount <= len(messageBinary):
                             # Encode as normal
-                            endIndex = currentMessageIndex+storableCount
-                            storableBits = messageBinary[currentMessageIndex:endIndex]
+                            storableBits = messageBinary[currentMessageIndex:currentMessageIndex+storableCount]
                             currentMessageIndex += storableCount
                         else:
                             if currentMessageIndex == len(messageBinary):
                                 # Finished encoding entire message
-                                currentMessageIndex = len(messageBinary)
                                 postEncodingValues += traversedPixelPair
                                 continue
                             else:
@@ -257,7 +257,6 @@ def rgbChannels(loadedImage: PIL.PngImagePlugin.PngImageFile, message: str="", q
         returnValue = True
         if currentMessageIndex != len(messageBinary):
             print(f"Warning: only encoded {len(messageBinary[0:currentMessageIndex])} of {len(messageBinary)} bits ({round(100*len(messageBinary[0:currentMessageIndex])/len(messageBinary), 2)}%)")
-            print(f"Original message: {message}")
             returnValue = False
 
             # Verbose errors
@@ -265,6 +264,8 @@ def rgbChannels(loadedImage: PIL.PngImagePlugin.PngImageFile, message: str="", q
                 # Underline section of binary that was encoded
                 # Get max printable width in current terminal
                 width = os.get_terminal_size()[0]
+                if len(messageBinary) > width * 5:
+                    print("Unable to print verbose warning, return binary exceeds maximum length")
                 
                 # Create array groupings of message lines and underlinings
                 printableMessageLines = list(groupImagePixels(messageBinary, width))
@@ -278,10 +279,10 @@ def rgbChannels(loadedImage: PIL.PngImagePlugin.PngImageFile, message: str="", q
                         print(f"{printableUnderlining}")
 
         # Create new image structure, save file
-        newPixels = list(groupImagePixels(newPixels, loadedImage.size[0]))
-        newPixels = pixelArrayToZigZag(newPixels, 1, loadedImage.size[0], loadedImage.size[0], loadedImage.size[1])
+        newPixels = list(groupImagePixels(newPixels, inFile.size[0]))
+        newPixels = pixelArrayToZigZag(newPixels, 1, inFile.size[0], inFile.size[0], inFile.size[1])
         array = np.array(newPixels, dtype=np.uint8)
         savedImage = PIL.Image.fromarray(array)
-        savedImage.save('./IO/outColor.png')
+        savedImage.save(outFile)
 
         return returnValue

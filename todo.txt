@@ -2,7 +2,7 @@ completed?
 allocate first section encoding for number of bits in message
 - enough bits to accomodate message filling entire file 
 - create some wacky encoding for metadata
-- create verification wrapper function architecture~~
+- create verification wrapper function architecture
 
 add function to calculate maximum storage potential in image
 
@@ -10,15 +10,17 @@ change functions to accept only binary, not ascii
 
 
 working on:
-add argument to use transformative functions
-- add class with encode / decode & compress / decompress methods
-- add transformation verification check
+implement PRNG / traversal algorithm to distribute data across entire image evenly
+- map possible storable bits in entire image
+- construct paths 
+
+implement peak signal to noise ratio metric
 
 
 todo:
-implement PRNG / traversal algorithm to distribute data across entire image evenly
-
-implement peak signal to noise ratio metric into readmes
+add argument to use transformative functions
+- add class with encode / decode & compress / decompress methods
+- add transformation verification check
 
 fix research readmes, set up different files for algorithms
 - add explanation of check
@@ -36,4 +38,5 @@ update readme to reflect supported functions
 considering:
 set up settings file
 
-work on flask frontend
+change license
+- add license text to temp interactive prompt

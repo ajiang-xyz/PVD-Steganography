@@ -3,6 +3,16 @@ import hashlib
 import math
 import time
 import PIL
+import os
+
+def wrapper(function):
+    """
+    dev wrapper function, prints name of function and args passed
+    """
+    def namedFunction(*args):
+        print(f"{function.__name__}{args}")
+        return function(*args)
+    return namedFunction
 
 def getMaxStorage(loadedImage: PIL.PngImagePlugin.PngImageFile, quantizationWidths: list=[],
                     traversalOrder: list=[], verbose: bool=False):
@@ -113,6 +123,7 @@ def pixelArrayToZigZag(loadedImage, channels, groupings, width="", height="") ->
         width = loadedImage.size[0]
         height = loadedImage.size[1]
         imagePixels = list(groupImagePixels(list(loadedImage.getdata()), width))
+
     zigZaggedPixels = []
     for row in range(height):
         if row % 2 == 0:
@@ -207,6 +218,8 @@ def validateQuantization(quantizationWidths: list=[], verbose: bool=False):
                 builtText = f"(missing items {missing} instead)"
             
             raise Exception(f"Quantization ranges must cover all values from 0 to 255 and no more {builtText}")
+        
+        quantizationWidths = sorted(quantizationWidths, key=lambda pair:pair[0])
 
     return quantizationWidths
 
@@ -284,3 +297,14 @@ def retrieveLength(modifiedHash):
 
     bitLength = bitLength[::-1]
     return int(bitLength), modifiedHash
+
+def clearBuffer():
+    """
+    OS dependant buffer clearing commands
+    """
+    if os.name == "posix":
+        os.system("clear")
+    elif os.name == "nt":
+        os.system("cls")
+    else:
+        raise Exception("Unknown operating system.")

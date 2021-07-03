@@ -1,427 +1,408 @@
 print("Executing...")
 
-import functools
-def wrapper(function):
-    print(locals())
-    @functools.wraps(function)
-    def wrappedFunction(*args, **kwargs):
-        print("Locals:")
-        print(locals())
-        return function(*args, **kwargs)
-    return wrappedFunction
+from typing import List
+from utils import *
 
-@wrapper
-def testing1(arg1, arg2):
-    print(locals())
-    return arg1+arg2
+def getMaxStorage(loadedImage: PIL.PngImagePlugin.PngImageFile, quantizationWidths: list=[],
+                    traversalOrder: list=[], verbose: bool=False):
+    """
+    Calculates the maximum number of storable bits in a an image file, given a traversal order (for RGB images) 
+    and quantization widths.
+    """
 
-print(testing1(1,5))
+    print()
+
+    quantizationWidths = validateQuantization(quantizationWidths, verbose)
+    traversalOrder = validateTraversal(traversalOrder, verbose)
+
+    print()
+
+    storable = []
+    occurances = {}
+    if "RGB" in loadedImage.mode.upper():
+        pixelPairs = pixelArrayToZigZag(loadedImage, 3, 2)
+        currentPairCounter = 0
+        for pixelPair in pixelPairs:
+            currentPairCounter += 1
+            if len(pixelPair) == 2:
+                # Flatten pixel pair array into un-nested list
+                pixelArray = [pixel for pair in pixelPair for pixel in pair]
+
+                # Sort pixel array given traversal order and group into calculation ready pairs
+                pixelIndicesDict = dict(sorted(dict(zip(traversalOrder, pixelArray)).items()))
+                traversedPixelPairs = list(groupImagePixels(list(pixelIndicesDict.values()), 2))
+
+                currentTraversedCounter = 0
+                for traversedPixelPair in traversedPixelPairs:
+                    currentTraversedCounter += 1
+                    # d value
+                    difference = traversedPixelPair[1] - traversedPixelPair[0]
+
+                    # Determine number of bits storable between pixels
+                    for width in quantizationWidths:
+                        if width[0] <= abs(difference) <= width[1]:
+                            lowerBound = width[0]
+                            upperBound = width[1]
+                            break
+                    
+                    # Falling-off-boundary check; ensure 0 < calculated pixel value < 255
+                    testingPair = pixelPairEncode(traversedPixelPair, upperBound, difference)
+                    if testingPair[0] < 0 or testingPair[1] < 0 or testingPair[0] > 255 or testingPair[1] > 255:
+                        # One of the values "falls-off" the range from 0 to 255 and hence is invalid
+                        if verbose == True:
+                            print(f"Verbose message: channel pair number {currentTraversedCounter} in pixel pair number {currentPairCounter} has the possibility of falling off; skipping")
+                    else:
+                        # Passes the check, continue with decoding
+                        # Number of storable bits between two pixels
+                        maxValue = int(math.log(upperBound - lowerBound + 1, 2))
+                        occurances[maxValue] = occurances[maxValue] + 1 if occurances.setdefault(maxValue, False) else 1
+                        storable.append(maxValue)
+    elif loadedImage.mode.upper() == "L":
+        pixelPairs = pixelArrayToZigZag(loadedImage, 1, 2)
+
+        currentPairCounter = 0
+        for pixelPair in pixelPairs:
+            currentPairCounter += 1
+            if len(pixelPair) == 2:
+                difference = pixelPair[1] - pixelPair[0]
+
+                # Determine number of bits storable between pixels
+                for width in quantizationWidths:
+                    if width[0] <= abs(difference) <= width[1]:
+                        lowerBound = width[0]
+                        upperBound = width[1]
+                        break
+                
+                # Falling-off-boundary check; ensure 0 < calculated pixel value < 255
+                testingPair = pixelPairEncode(pixelPair, upperBound, difference)
+                if testingPair[0] < 0 or testingPair[1] < 0 or testingPair[0] > 255 or testingPair[1] > 255:
+                    # One of the values "falls-off" the range from 0 to 255 and hence is invalid
+                    if verbose == True:
+                        print(f"Verbose message: pixel pair number {currentPairCounter} has the possibility of falling off; skipping")
+                else:
+                    # Passes the check, continue with decoding
+                    # Number of storable bits between two pixels
+                    maxValue = int(math.log(upperBound - lowerBound + 1, 2))
+                    occurances[maxValue] = occurances[maxValue] + 1 if occurances.setdefault(maxValue, False) else 1
+                    storable.append(maxValue)
+
+    storableCount = sum(storable)
+
+    power = 1024
+    counter = 0
+    labels = {0 : "", 1: "kilo", 2: "mega", 3: "giga", 4: "tera", 5:"peta"}
+    while storableCount > power:
+        storableCount /= power
+        counter += 1
+    return round(storableCount, 2), labels[counter]+"bits", storable, occurances
 
 
-from utils import groupImagePixels
+def occuranceCount(array):
+    """
+    Returns dict of form <element in array>:<appearance count in array>
+    """
+    occurances = {}
+    for value in array:
+        occurances[value] = occurances[value] + 1 if occurances.setdefault(value, False) else 1
+    return occurances
 
+def mid(array, bias=True):
+    """
+    Returns biased middle value of array
+    True bias means biased towards end of array
+    False biase means biased towards beginning of array
+    """
+    if bias:
+        biasFunction = math.ceil
+    else:
+        biasFunction = math.floor
 
-# pixelPair = [[25,35,45],[50,60,70]]
-# traversalOrder = [1,3,5,2,4,6]
+    return array[biasFunction((len(array)-1)/2)]
 
+def getIndexes(array, keyword):
+    """
+    Returns array of indices search term appears in input array
+    """
+    indexes = []
+    for i in range(len(array)):
+        if array[i] == keyword:
+            indexes.append(i)
+    return indexes
 
+import random
+def seededTraversal(differences, messageBitLength, occurances, seed=69420):
+    random.seed(seed)
 
-# def rgbChannels(loadedImage: PIL.PngImagePlugin.PngImageFile, message: str="", quantizationWidths: list=[],
-#                     traversalOrder: list=[], verbose: bool=False):
+    # occurances = occuranceCount(differences)
+    # print("finished counting occurances")
+    occurances = {item[0]:item[1] for item in sorted(occurances.items())}
 
-#     """
-#     This function takes takes an image of the form
-#     [
-#         [<RGB 1>, <RGB 2>, <RGB 3>, ... ],
-#         [<RGB a>, <RGB a+1>, <RGB a+2>, ... ],
-#         [<RGB b>, <RGB b+1>, <RGB b+2>, ... ],
-#         ...
-#     ]
-#     where RGB <index> is of the form [R, G, B] (if there is an Alpha channel present, it is ignored)
+    keys = list(occurances.keys())
+    # counts = list(occurances.values())
 
-#     And utilizes a modified version Wu and Tsai's algorithm to encode a message into this nested array structure.
+    maxStorable = sum([key * occurances[key] for key in occurances])
+    traversed = []
 
-#     Because this image is RGB, an order of traversal is needed to ensure the correct encoding/retrieval order 
-#     while traversing the structure.
+    while sum(traversed) < messageBitLength:
+        keyStorableValues = [key * occurances[key] for key in occurances]
+        weights = [round((math.sqrt(item))/(maxStorable),9) for item in keyStorableValues]
+        # print(occurances)
+        # print(f"weights: {weights}")
+        choice = random.choices(keys, weights=weights)[0]
+        occurances[choice] -= 1
+        traversed.append(choice)
+
+    occurances = occuranceCount(differences)
+    occurances = {item[0]:item[1] for item in sorted(occurances.items())}
+
+    traversedOccurances = occuranceCount(traversed)
+    traversedOccurances = {item[0]:item[1] for item in sorted(traversedOccurances.items())}
+
+    # print()
+    # print(f"image data: {differences}")
+    # print(f"occurances: {occurances}")
+    # print()
+    # print(f"list of values to encode into: {traversed}")
+    # print(f"occurances in traversed: {traversedOccurances}")
+
+    # Translate traversed values into indexes to embed
+    traversedIndexes = {}
+    for item in traversedOccurances:
+        traversedIndexes[item] = getIndexes(differences, item)[:traversedOccurances[item]]
+
+    # print()
+    # print(traversedIndexes)
+
+    encodingIndexes = []
+    for item in traversed:
+        encodingIndexes.append(traversedIndexes[item].pop(0))
+
+    print(f"index order to encode: {encodingIndexes}")
     
-#     Define a general pair of RGB pixels as [[R1, G1, B1], [R2, G2, B2]] and flatten it into [R1, G1, B1, R2, G2, B2]
-#     The traversal order is an array of that maps the corresponding value to a location it should be sorted to. 
-#     After mapping and sorting the pixel values, pair adjacent pixels 
 
-#     For example, a possible traversal order is the standard [1, 3, 5, 2, 4, 6]
-#     Applying this traversal order concept to the RGB pixel pair 
-#     [[185, 75, 250], [255, 80, 200]] 
-#     results in these encodable groups of values:
-#     [[185, 255], [75, 80], [250, 200]]
-#     """
+@executionTime
+def main():
+    testingImage = PIL.Image.open("/mnt/c/users/alex/downloads/langa.png")
+    maxStorable, sizeLabel, differences, occurances = getMaxStorage(testingImage, verbose=True)
+    print(f"{maxStorable} {sizeLabel}\n")
+    seededTraversal(differences, 102384, occurances)
+    # print(chunkArray(differences, 7))
+    # print(list(groupImagePixels(differences, 5)))
 
-#     quantizationWidths = validateQuantization(quantizationWidths, True)
-#     traversalOrder = validateTraversal(traversalOrder, True)
+main()
 
-#     pixelPairs = pixelArrayToZigZag(loadedImage, 3, 2)
 
-#     # If function is run without message, assume retrieval of message
-#     if message == "":
-#         # Retrieval function
-#         if verbose:
-#             print("Verbose message: no message given, assuming retrieval of message")
-#         messageBinary = ""
+# import random
+# def getEmbedIndexes(differences, bitLength):
+#     # differences = [1,4,6,1,3,1,3,5,1,4,7,3,3,2,3,4,5,6,7,8,9,1,1,1,1,1]
 
-#         for pixelPair in pixelPairs:
-#             if len(pixelPair) == 2:
+#     occurances = occuranceCount(differences)
+#     occurances = {item[0]:item[1] for item in sorted(occurances.items())}
 
-#                 # Flatten pixel pair array into un-nested list
-#                 pixelArray = [pixel for pair in pixelPair for pixel in pair]
+#     keys = list(occurances.keys())
+#     keyCount = list(occurances.values())
+#     keyStorableValues = [item[0] * item[1] for item in zip(keys,keyCount)]
+#     weights = [round(item/sum(keyStorableValues),2) for item in keyStorableValues]
+#     random.seed(69)
 
-#                 # Sort pixel array given traversal order and group into calculation ready pairs
-#                 pixelIndicesDict = dict(sorted(dict(zip(traversalOrder, pixelArray)).items()))
-#                 traversedPixelPairs = groupImagePixels(list(dictionary.values()), 2)
+#     # when choice is made pop out of keys, adjust weights
+#     print(random.choices(keys, weights=weights, k=5))
+#     print()
+#     print(f"{keys}\n{keyCount}\n{keyStorableValues}\n{weights}\n")
+    
+#     if len(keys) % 2 == 0:
+#         end = len(keys)/2
+        
+#         lowSum = sum(keyStorableValues[end:])
+#         midSum = 0
+#         highSum = sum(keyStorableValues[:end])
 
-#                 for traversedPixelPair in traversedPixelPairs:
-#                     # d value
-#                     difference = traversedPixelPair[1] - traversedPixelPair[0]
-
-#                     # Determine number of bits storable between pixels
-#                     for width in quantizationWidths:
-#                         if width[0] <= difference <= width[1]:
-#                             lowerBound = width[0]
-#                             upperBound = width[1]
-#                             break
-                    
-#                     # Falling-off-boundary check; ensure 0 < calculated pixel value < 255
-#                     testingPair = pixelPairEncode(traversedPixelPair, upperBound, difference)
-#                     if testingPair[0] < 0 or testingPair[1] < 0 or testingPair[0] > 255 or testingPair[1] > 255:
-#                         # One of the values "falls-off" the range from 0 to 255 and hence is invalid
-#                         if verbose == True:
-#                             print(f"Verbose warning: pixel pair number {traversedPixelPair.index(ptraversedPixelPairixelPair)} had the possibility of falling off and was skipped during the encoding process")
-#                     else:
-#                         # Passes the check, continue with decoding
-#                         # Number of storable bits between two pixels
-#                         storableCount = int(math.log(upperBound - lowerBound + 1, 2))
-                        
-#                         # Extract encoded decimal
-#                         if difference >= 0:
-#                             retrievedDecimal = difference - lowerBound
-#                         else:
-#                             retrievedDecimal = - difference - lowerBound
-
-#                         retrievedBinary = bin(retrievedDecimal).replace("0b", "")
-
-#                         # Edge case in which embedded data began with 0's
-#                         if storableCount > len(retrievedBinary):
-#                             retrievedBinary = "0" * (storableCount-len(retrievedBinary)) + retrievedBinary
-
-#                         messageBinary += retrievedBinary
-
-#         return messageBinary
+#         print(f"{keys[:len(keys)/2]}, {keys[len(keys)/2:]}")
+#         print(f"{lowSum}, {midSum}, {highSum}")
 #     else:
-#         # Encoding function
-#         newPixels = []
+#         lowEnd = math.floor(len(keys)/2)
+#         highEnd = math.ceil(len(keys)/2)
+        
+#         lowSum = keyStorableValues[lowEnd:]
+#         midSum = keyStorableValues[int(len(keys)/2)]
+#         highSum = keyStorableValues[:highEnd]
 
-#         # Get binary of message
-#         messageBinary = "0" + str(bin(int.from_bytes(message.encode(), "big")))[2:]
-#         currentMessageIndex = 0
+#         print(f"{keys[:lowEnd]}, {keys[int(len(keys)/2)]}, {keys[highEnd:]}")
+#         print(f"{lowSum}, {midSum}, {highSum}")
+        
+#     low = keys[0]
+#     middle = mid(keys)
+#     high = keys[-1]
 
-#         for pixelPair in pixelPairs:
-#             if len(pixelPair) == 2 and currentMessageIndex < len(messageBinary) - 1:
+#     lowDiff = middle - low
+#     highDiff = high - middle
 
-#                 # Flatten pixel pair array into un-nested list
-#                 pixelArray = [pixel for pair in pixelPair for pixel in pair]
+#     print(f"\n{low}, {middle}, {high}\n{lowDiff}, {highDiff}")
 
-#                 # Sort pixel array given traversal order and group into calculation ready pairs
-#                 pixelIndicesDict = dict(sorted(dict(zip(traversalOrder, pixelArray)).items()))
-#                 traversedPixelPairs = groupImagePixels(list(dictionary.values()), 2)
 
-#                 postEncodingValues = []
 
-#                 for traversedPixelPair in traversedPixelPair:
-#                     # d value
-#                     difference = pixelPair[1] - pixelPair[0]
+# class ValueIndexPair(object):
+#     def __init__(self, value, index):
+#         self.value = value
+#         self.index = index
 
-#                     # Determine number of bits storable between pixels
-#                     for width in quantizationWidths:
-#                         if width[0] <= difference <= width[1]:
-#                             lowerBound = width[0]
-#                             upperBound = width[1]
-#                             break
-                    
-#                     # Falling-off-boundary check; ensure 0 < calculated pixel value < 255
-#                     testingPair = pixelPairEncode(pixelPair, upperBound, difference)
-#                     if testingPair[0] < 0 or testingPair[1] < 0 or testingPair[0] > 255 or testingPair[1] > 255:
-#                         # One of the values "falls-off" the range from 0 to 255 and hence is invalid
-#                         # Append original pixel pair and skip encoding
-#                         postEncodingValues += pixelPair
-#                         if verbose:
-#                             print(f"Verbose warning: pixel pair number {pixelPairs.index(pixelPair)} has the possibility of falling off; skipping")
-#                     else:
-#                         # Passes the check, continue with encoding
-#                         # Number of storable bits between two pixels
-#                         storableCount = int(math.log(upperBound - lowerBound + 1, 2))
+# def createPairArray(array):
+#     pairedArray = []
 
-#                         # Ensure haven't already finished encoding entire message
-#                         if currentMessageIndex + storableCount <= len(messageBinary):
-#                             # Encode as normal
-#                             endIndex = currentMessageIndex+storableCount
-#                             storableBits = messageBinary[currentMessageIndex:endIndex]
-#                             currentMessageIndex += storableCount
-#                         else:
-#                             if currentMessageIndex == len(messageBinary):
-#                                 # Finished encoding entire message
-#                                 currentMessageIndex = len(messageBinary)
-#                                 postEncodingValues += pixelPair
-#                                 continue
-#                             else:
-#                                 # Can encode more bits than available, encode what's left
-#                                 storableBits = messageBinary[currentMessageIndex:]
+#     currentIndex = 0
+#     for value in array:
+#         pairedArray += [ValueIndexPair(value, currentIndex)]
+#         currentIndex += 1
+        
+#     return pairedArray
 
-#                                 # Ensure last bit doesn't get corrupted, fill empty space with 0's
-#                                 storableBits += "0" * (storableCount - len(messageBinary[currentMessageIndex:]))
-#                                 currentMessageIndex = len(messageBinary)
+# def chunkArray(array, chunksCount):
+#     average = len(array) / float(chunksCount)
+#     chunkedArrays = []
+#     last = 0.0
 
-#                         # Get value of the chunk of message binary
-#                         storableBitsValue = int(storableBits, 2)
+#     while last < len(array):
+#         chunkedArrays.append(array[int(last):int(last + average)])
+#         last += average
 
-#                         # d' value
-#                         differencePrime = lowerBound + storableBitsValue if difference >= 0 else -(lowerBound + storableBitsValue)
+#     return chunkedArrays
 
-#                         # Calculate new pixel pair
-#                         newPixelPair = pixelPairEncode(pixelPair, differencePrime, difference)                    
-#                         postEncodingValues += newPixelPair
+# def groupImagePixels(imagePixels, imageWidth):
+#     """
+#     Split array of pixel values into nested: [[1,2],[3,4],[5,6],[7,8]] --> [[[1,2],[3,4]],[[5,6],[7,8]]]
+#     """
+#     for i in range(0, len(imagePixels), imageWidth): 
+#         yield imagePixels[i : i + imageWidth]
+
+# testingImage = PIL.Image.open("./IO/inColor.png")
+# maxStorable, sizeLabel, differences = getMaxStorage(testingImage, verbose=True)
+# print(chunkArray(differences, 7))
+# print(list(groupImagePixels(differences, 5)))
+
+
+# def combinationSum(candidates: List[int], finalTarget: int) -> List[List[int]]:
+#     results = list()
+#     if not candidates:
+#         return results
+
+#     if sum(candidates) == finalTarget:
+#         return candidates
+
+#     def depthFirstSearch(candidates, temp, index, length, target):
+#         if target == 0:
+#             results.append(list(temp))
+#             return
+#         if target > finalTarget:
+#             return
+#         for currentIndex in range(index, length):
+#             # print(f"{index}, {target}", end="\r")
+#             if target < candidates[currentIndex]:
+#                 break
                 
-#                 # Flatten encoded value pair array into un-nested list
-#                 pixelArray = [pixel for pair in pixelPair for pixel in pair]
+#             temp.append(candidates[currentIndex])
+#             depthFirstSearch(candidates, temp, currentIndex, length, target - candidates[currentIndex])
+#             temp.pop()
+    
+#     length = len(candidates)
+#     candidates.sort()
+    
+#     depthFirstSearch(candidates, list(), 0, length, finalTarget)
+#     return results
 
-#                 # Un-sort pixel array given traversal order and group into calculation original RGB channels
-#                 reversedPaired = groupImagePixels([pixelIndicesDict[key] for key in traversalOrder], 3)
-#                 newPixels += reversedPaired
-#             else:
-#                 # For case in which there's an odd number of pixels; append lone pixel value
-#                 newPixels += pixelPair
+# @executionTime
+# def main():
+#     testingImage = PIL.Image.open("./IO/inColor.png")
+#     maxStorable, sizeLabel, differences = getMaxStorage(testingImage, verbose=True)
+#     print(f"{maxStorable} {sizeLabel}")
+#     print(differences)
 
-#         returnValue = True
-#         if currentMessageIndex != len(messageBinary):
-#             print(f"Warning: only {len(messageBinary[0:currentMessageIndex])} of {len(messageBinary)} bits encoded")
-#             print(f"\nOriginal message: {message}")
-#             returnValue = False
+#     print("Starting combination sum algorithm...")
+#     test = combinationSum(differences, 32)
+#     print(test)
+# main()
 
-#             # Verbose errors
-#             if verbose == True:
-#                 # Underline section of binary that was encoded
-#                 # Get max printable width in current terminal
-#                 width = os.get_terminal_size()[0]
-                
-#                 # Create array groupings of message lines and underlinings
-#                 printableMessageLines = list(groupImagePixels(messageBinary, width))
-#                 printableUnderlinings = list(groupImagePixels("~"*len(messageBinary[0:currentMessageIndex]), width))
-
-#                 # Zip and print
-#                 print("\nVerbose warning: only encoded underlined section of message:")
-#                 for printableMessageLine, printableUnderlining in itertools.zip_longest(printableMessageLines, printableUnderlinings, fillvalue=""):
-#                     print(f"{printableMessageLine}")
-#                     if printableUnderlining:
-#                         print(f"{printableUnderlining}")
-
-#         # Create new image structure, save file
-#         newPixels = list(groupImagePixels(newPixels, loadedImage.size[0]))
-#         newPixels = pixelArrayToZigZag(newPixels, 1, loadedImage.size[0], loadedImage.size[0], loadedImage.size[1])
-#         array = np.array(newPixels, dtype=np.uint8)
-#         savedImage = PIL.Image.fromarray(array)
-#         savedImage.save('./IO/out.png')
-
-#         return returnValue
-
-# # # Sort pixel array given traversal order and group into calculation ready pairs
-# # pixelIndicesDict = dict(zip(traversalOrder, pixelArray))
-# # traversedPixelPairs = list({key:pixelIndicesDict[key] for key in sorted(pixelIndicesDict.keys())}.values())
-# # traversedPixelPairs = groupImagePixels(traversedPixelPairs, 2)
-
-# # # Maps values in array to new array given an ordering array
-# # test = [11,12,13,14,15,16,17,18,19]
-# # vals = [4, 5, 1, 7, 3, 2, 9, 8, 6]
-# # dictionary = dict(sorted(dict(zip(vals, test)).items()))
-# # test = list(dictionary.values())
-
-# # dictionary = dict(zip(vals, test))
-# # test = list({key:dictionary[key] for key in sorted(dictionary.keys())}.values())
-
-
-
-# # # Reversing process
-# # # [13, 16, 15, 11, 12, 19, 14, 18, 17]
-# # # [4, 5, 1, 7, 3, 2, 9, 8, 6]
-# # reversed = [dictionary[key] for key in vals]
-
-
-# test = [11,12,13,14,15,16,17,18,19]
-# vals = [4, 5, 1, 7, 3, 2, 9, 8, 6]
-# order = list(zip(vals,[1,2,3,4,5,6,7,8,9]))
-# dictionary = dict(sorted(dict(zip(order, test)).items()))
-# test = list(dictionary.values())
-
-# test = [item + 1 for item in test]
-
-# dictionary = dict(sorted(dict(zip([ key[1] for key in dictionary.keys() ], test)).items()))
-# testing = list(dictionary.values())
-
-# testing
-
-
-
-# import hashlib
-# import math 
-
-# def rosenburgStrongPairing(argument, reverse=False):
-#     """
-#     Implementation of the Rosenburg-Strong Pairing Function
-#     """
-#     if reverse:
-#         m = math.floor(math.sqrt(argument))
-#         if argument-m**2<m:
-#             return [int(argument-m**2), int(m)]
-#         return [int(m), int(m**2+2*m-argument)]
-
-#     x, y = argument
-#     return (max(x,y))**2+max(x,y)+x-y
-
-# def embedLength(message):
-#     """
-#     This function zig-zags the bit length of the message into the message hash
-#     """
-
-#     originalHash = hashlib.sha256(message.encode()).hexdigest()
-#     modifiedHash = originalHash
-
-#     remainingLength = str(len(str(bin(int.from_bytes(message.encode(), "big")))[2:]) + 1)
-#     if len(remainingLength) % 2 == 1:
-#         modifiedHash = remainingLength[0] + modifiedHash
-#         remainingLength = remainingLength[1:]
-
-#     while len(remainingLength) > 0:
-#         modifiedHash = remainingLength[0] + modifiedHash + remainingLength[1]
-#         remainingLength = remainingLength[2:]
-
-#     return modifiedHash
-
-# def retrieveLength(modifiedHash):
-#     """
-#     This function retrieves the bit length from hash modified by embedLength()
-#     """
-#     bitLength = ""
-#     while len(modifiedHash) > 65:
-#         bitLength += modifiedHash[-1] + modifiedHash[0]
-#         modifiedHash = modifiedHash[1:len(modifiedHash)-1]
-
-#     if len(modifiedHash) == 65:
-#         bitLength += modifiedHash[0]
-#         modifiedHash = modifiedHash[1:]
-
-#     bitLength = bitLength[::-1]
-#     return bitLength
-
-# # test = {}
-# # test[rosenburgStrongPairing([5,5])] = embedLength("hi")
-# # print(test)
-
-# # Code to modify metadata values
-# from PIL.PngImagePlugin import PngImageFile, PngInfo
-
-# # Edit PNG metadata to include fingerprint of this PVD algorithm
-# modifyMetadata = PngImageFile("./IO/outCopy.png")
-# metadata = PngInfo()
-# metadata.add_text("png:fingerprint", f"{rosenburgStrongPairing([5,5])}:{embedLength('hi')}")
-# modifyMetadata.save("./IO/outCopy.png", pnginfo=metadata)
-
-# testEncoded = PngImageFile("./IO/outCopy.png")
-# print(testEncoded.size)
-# print(testEncoded.text)
-
-
-
-# verificationData: PIL.PngImagePlugin.PngImageFile=False,
-
-# Verify image data
-        # if verificationData:
-            # verifications = verificationData["png:fingerprint"].split(":")
-            # imageWidth, imageHeight = rosenburgStrongPairing(verifications[0])
-            # bitLength, messageHash = retrieveLength(verifications[1])
-
-            # if loadedImage.size[0] != imageWidth or loadedImage.size[1] != imageHeight:
-            #     raise Exception(f"Image verification failed. Image dimensions don't match encoded verification data.")
-
-# if verificationData:
-            # if len(messageBinary) >= bitLength:
-            #     messageBinary = messageBinary[:bitLength]
-            #     if hashlib.sha256(messageBinary.encode()).hexdigest() == messageHash:
-            #         return messageBinary
-            #     else:
-            #         raise Exception(f"Message verification failed. Hash of retrieved binary doesn't match encoded verification data.")
-            # raise Exception("Message verification failed. Length of retrieved message binary doesn't match encoded verification data.")
-
-
-# import math
-# def rosenburgStrongPairing(argument, reverse=False):
-#     """
-#     Implementation of the Rosenburg-Strong Pairing Function
-#     """
-#     if reverse:
-#         m = math.floor(math.sqrt(argument))
-#         if argument-m**2<m:
-#             return [int(argument-m**2), int(m)]
-#         return [int(m), int(m**2+2*m-argument)]
-
-#     x, y = argument
-#     print(argument)
-#     return (max(x,y))**2+max(x,y)+x-y
-
-# uniqueID = rosenburgStrongPairing([10000, 15129])
-# test = rosenburgStrongPairing(uniqueID, True)
-# print(uniqueID)
+# test = ValueIndexPair(1,0)()
 # print(test)
 
-# import math
-# def cantorPairing(argument, reverse=False):
-#     if reverse:
-#         w = math.floor((math.sqrt(8*argument+1)-1)/2)
-#         t = (w**2+w)/2
-#         y = argument - t
-#         x = w - y
-#         return x, y
-#     x, y = argument
-#     return (x+y+1)(x+y)/2 + y
 
 
-# # Code to zip message length into hash 
-# import hashlib
+# def getPairArray(pairArray, mode=""):
+#     if mode == "values":
+#         return [item.value for item in pairArray]
+#     return {item.value:item.index for item in pairArray}
 
-# def embedLength(bitLength, message):
-#     originalHash = hashlib.sha256(message.encode()).hexdigest()
-#     modifiedHash = originalHash
 
-#     remainingLength = bitLength
-#     if len(remainingLength) % 2 == 1:
-#         modifiedHash = remainingLength[0] + modifiedHash
-#         remainingLength = remainingLength[1:]
 
-#     while len(remainingLength) > 0:
-#         modifiedHash = remainingLength[0] + modifiedHash + remainingLength[1]
-#         remainingLength = remainingLength[2:]
 
-#     print(originalHash)
-#     print(modifiedHash)
 
-#     return modifiedHash
+# pairedArray = createPairArray([2,2,3,4,5])
+# for item in pairedArray:
+#     item.value += 1
+#     print(item.value)
 
-# def retrieveLength(modifiedHash):
-#     message = ""
-#     while len(modifiedHash) > 65:
-#         message += modifiedHash[-1] + modifiedHash[0]
-#         modifiedHash = modifiedHash[1:len(modifiedHash)-1]
-#     if len(modifiedHash) == 65:
-#         message += modifiedHash[0]
-#         modifiedHash = modifiedHash[1:]
+# for i, j in enumerate(pairedArray):
+#     print(f"{i}, {j.value}")
 
-#     message = message[::-1]
-#     print(message)
+# print(getPairArray(pairedArray))
 
-# modifiedHash = embedLength("19383", "hi")
-# retrieveLength(modifiedHash)
+# import numpy as np
+# import functools
+# @functools.lru_cache(maxsize=None)
+# def subset_sum(numbers, target, partial=[], partial_sum=0):
+#     if partial_sum == target:
+#         yield partial
+#     if partial_sum >= target:
+#         return
+#     for index, value in enumerate(numbers):
+#         remaining = numbers[index + 1:]
+#         yield from subset_sum(remaining, target, partial + [value.value], partial_sum + value.value)
+
+# @executionTime
+# def testing():
+#     testingImage = PIL.Image.open("./IO/inColor.png")
+#     count, label, differences = getMaxStorage(testingImage, verbose=True)
+#     differences = createPairArray(differences)
+#     print(f"\n{count} {label}")
+#     print(f"{getPairArray(differences)}")
+
+#     # indexes = dict(zip(differences,range(0,len(differences))))
+#     # print(indexes)
+#     test = subset_sum(differences, 135)
+#     # highestAverage = 0
+#     itemValue = None
+#     # for item in test: 
+#     #     average = np.average(np.diff(np.array(item)))
+#     #     if average > highestAverage:
+#     #         highestAverage = average
+#     #         itemValue = item
+
+#     print([value for value in test])
+#     # itemValue = max(test)
+
+#     print(getPairArray(differences))
+#     print(itemValue)
+#     # encodingIndexes = [indexes[value] for value in itemValue]
+#     # print(encodingIndexes)
+
+
+# testing()
+
+# @executionTime
+# def changes(amount, coins):
+#     ways = [0] * (amount + 1)
+#     ways[0] = 1
+#     for coin in coins:
+#         for j in range(coin, amount + 1):
+#             ways[j] += ways[j - coin]
+#     return ways
+
+
+
+
+# for item in test:
+#     print(item)
+ 
+# print(changes(100, [1, 5, 10, 25]))
+# print(changes(100000, [1, 5, 10, 25, 50, 100]))
+
+# testing()

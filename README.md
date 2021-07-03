@@ -1,23 +1,24 @@
-
-
 # PVD Steganography Research Project
 
 ## Objective
-Create several variations of the PVD steganographic method and write a tool for the encoding and decoding of these variations. 
+
+Create several variations of the PVD steganographic method and write a tool for the encoding and decoding of these variations.
 
 ## Background
 
 ### What is steganography?
+
 Steganography, in the case of images, is the practice of hiding secret data inside a normal image such that the yielded image is almost or completely visually indiscernible from the original. There are numerous types of steganography, but all methods are reversible and difficult to detect. After encoding a message into a file using a steganographic technique, one must still be able to retrieve the secret, hidden data from the output file. Moreover, one must not be able to determine which image contains the secret message.
 
 ### What is Pixel Value Differencing (PVD)?
+
 Abstract, modified for clarity, from Wu and Tsai's 2002 paper, "A steganographic method for imagesby pixel-value differencing":
 
 > Pixel Value Differencing is a new and efficient steganographic method for embedding secret messages into a gray-valued cover image. In the process of embedding a secret message, a cover image is partitioned into non-overlapping blocks of two consecutive pixels. A difference value is calculated from the values of the two pixels in each block. All possible difference values are classified into a number of ranges. The selection of the range intervals is based on the characteristics of human visions sensitivity to gray value variations from smoothness to contrast. The difference value then is replaced by a new value to embed the value of a sub-stream of the secret message. The number of bits which can be embedded in a pixel pair is decided by the width of the range that the difference value belongs to. The method is designed in such a way that the modification is never out of the range interval. This method provides an easy way to produce a more imperceptible result than those yielded by simple least-significant-bit replacement methods. The embedded secret message can be extracted from the resulting stego-image without referencing the original cover image. Moreover, a pseudo-random mechanism may be used to achieve secrecy protection. Experimental results show the feasibility of the proposed method. Dual statistics attacks were also conducted to collect related data to show the security of the method.
 
 ## Directory Tree
 
-```
+```text
 Root of PVD-Steganography
 ├── PVD                                        Python module
 │   ├── IO                                     IO directory for the PVD module
@@ -44,11 +45,8 @@ Root of PVD-Steganography
 └── todo.txt                                   List of items I'd like to complete
 ```
 
-
 ## References
 
 >Wu, Da-Chun, and Wen-Hsiang Tsai. _A Steganographic Method for Images by Pixel Value Differencing_, Pattern Recognition Letters 24 (2003) 1613–1626, 29 Oct. 2001, https://people.cs.nctu.edu.tw/~whtsai/Journal%20Paper%20PDFs/Wu_&_Tsai_PRL_2003.pdf. Accessed 29 April 2021.
-
 > Hameed, Mohamed Abdel, et al. “A High Payload Steganography Method Based on Pixel Value Differencing.” _A High Payload Steganography Method Based on Pixel Value Differencing_, 11th International Conference on Informatics and Systems, 10 Dec. 2018, https://ssrn.com/abstract=3389800. Accessed 30 April 2021.
-
 > Szudzik, Matthew P. _The Rosenberg-Strong Pairing Function_, ArXiv, 28 Jan. 2019, https://arxiv.org/pdf/1706.04129.pdf. Accessed 3 June 2021.
